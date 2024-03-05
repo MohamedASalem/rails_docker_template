@@ -1,0 +1,52 @@
+version: '3'
+
+volumes:
+  redis_db:
+  db:
+
+services:
+  db: &postgres
+    image: postgres:13-alpine
+    volumes:
+      - db:/var/lib/postgresql/data
+    env_file:
+      - .env
+
+  test_db:
+    image: postgres:13-alpine
+    env_file:
+      - .env
+
+  redis_db:
+    image: redis:7.0-alpine
+    command: redis-server
+    volumes:
+      - redis_db:/data
+
+  web:
+    depends_on:
+      - db
+      - worker
+    container_name: rails_app
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/myapp
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+
+  worker:
+    depends_on:
+      - db
+      - redis_db
+    build: .
+    environment:
+      IS_WORKER: 1
+    volumes:
+      - .:/myapp
+    env_file:
+      - .env
+
